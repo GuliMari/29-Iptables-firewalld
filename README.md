@@ -9,7 +9,7 @@
 *  реализовать проход на 80й порт без маскарадинга
 
 
-##1. Knocking port
+## 1. Knocking port
 
 На `inetRouter` добавлены правила iptables для knocking port и разрешен вход через ssh по логину и паролю;  
 на `centralRouter` добавлен скрипт, с помощью которого будем "стучаться" на `inetRouter`.
@@ -54,5 +54,5 @@ Last login: Wed Apr 12 16:33:04 2023 from 10.0.2.2
 [vagrant@inetRouter ~]$ 
 ```
 
-##2. Проброс портов
+## 2. Проброс портов
 

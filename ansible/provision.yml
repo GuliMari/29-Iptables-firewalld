@@ -1,0 +1,185 @@
+---
+- name: Config host
+  hosts: all
+  become: true
+  tasks:
+    - name: Set up forward packages across routers
+      ansible.posix.sysctl:
+        name: net.ipv4.conf.all.forwarding
+        value: '1'
+        state: present
+      when: "'routers' in group_names"
+
+    - name: Configure inetRouter
+      when: (inventory_hostname == "inetRouter")
+      block:
+        - name: Install iptables
+          ansible.builtin.yum:
+            name:
+              - iptables
+              - iptables-services
+            state: present
+
+        - name: Copy iptables config
+          ansible.builtin.copy:
+            src: iptables_inetRouter
+            dest: /etc/sysconfig/iptables
+            owner: root
+            group: root
+            mode: 0600
+
+        - name: Start and enable iptables service
+          ansible.builtin.systemd:
+            name: iptables
+            state: restarted
+            enabled: true
+
+        - name: Set up route on inetRouter
+          ansible.builtin.copy:
+            src: inetRouter_route_eth1
+            dest: /etc/sysconfig/network-scripts/route-eth1
+            owner: root
+            group: root
+            mode: 0644
+
+        - name: Restart network service
+          ansible.builtin.systemd:
+            name: network
+            daemon_reload: true
+            state: restarted
+
+        - name: Enable password authentication with ssh
+          ansible.builtin.copy:
+            src: sshd_config
+            dest: /etc/ssh/sshd_config
+            owner: root
+            group: root
+            mode: 0644
+    
+        - name: Restart sshd service
+          ansible.builtin.systemd:
+            name: sshd
+            state: restarted
+
+    - name: Configure inetRouter2
+      when: (inventory_hostname == "inetRouter2")
+      block:
+        - name: Install iptables
+          ansible.builtin.yum:
+            name:
+              - iptables
+              - iptables-services
+            state: present
+            update_cache: true
+
+        - name: Copy iptables config
+          ansible.builtin.copy:
+            src: iptables_inetRouter2
+            dest: /etc/sysconfig/iptables
+            owner: root
+            group: root
+            mode: 0600
+
+        - name: Start and enable iptables service
+          ansible.builtin.systemd:
+            name: iptables
+            state: restarted
+            enabled: true
+
+        - name: Disable default route
+          ansible.builtin.lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+
+        - name: Add default gateway for inetRouter2
+          ansible.builtin.lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.255.1
+      
+        - name: Set up route on inetRouter2
+          ansible.builtin.copy:
+            src: inetRouter2_route_eth1
+            dest: /etc/sysconfig/network-scripts/route-eth1
+            owner: root
+            group: root
+            mode: 0644
+ 
+        - name: Restart network service
+          ansible.builtin.systemd:
+            name: network
+            daemon_reload: true
+            state: restarted
+
+    - name: Configure centralRouter
+      when: (inventory_hostname == "centralRouter")
+      block:
+        - name: Disable default route
+          ansible.builtin.lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+
+        - name: Add default gateway for centralRouter
+          ansible.builtin.lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.255.1
+
+        - name: Restart network service
+          ansible.builtin.systemd:
+            name: network
+            daemon_reload: true
+            state: restarted
+
+        - name: Copy knocking script
+          ansible.builtin.copy:
+            src: knock.sh
+            dest: /home/vagrant/knock.sh
+            owner: vagrant
+            group: vagrant
+            mode: 0755
+
+        - name: Install nmap
+          ansible.builtin.yum:
+            name:
+              - nmap
+            state: present
+            update_cache: true
+
+    - name: Configure centralServer
+      when: (inventory_hostname == "centralServer")
+      block:
+        - name: Disable default route
+          ansible.builtin.lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+
+        - name: Add default gateway for centralServer
+          ansible.builtin.lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.0.1
+
+        - name: Restart network service
+          ansible.builtin.systemd:
+            name: network
+            daemon_reload: true
+            state: restarted
+
+        - name: Install EPEL Repo
+          ansible.builtin.yum:
+            name: epel-release
+            state: present
+
+        - name: Install nginx
+          ansible.builtin.yum:
+            name: nginx
+            state: present
+
+        - name: Start nginx
+          ansible.builtin.systemd:
+            name: nginx
+            state: restarted
+            enabled: true
+
+    - name: Reboot servers
+      ansible.builtin.reboot:
+
+...

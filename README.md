@@ -58,5 +58,15 @@ Last login: Wed Apr 12 16:33:04 2023 from 10.0.2.2
 Из задания не совсем понятно, в какой сети находится inetRouter2. Я соединила все роутеры в единую сеть `router-net`.
 Проверяем работу `nginx` на хостовой машине:
 ```bash
-
+tw4@tw4-mint:~/Desktop/Linux/Pro/24-Iptables/29-Iptables-firewalld$ curl -I localhost:8082
+HTTP/1.1 200 OK
+Server: nginx/1.20.1
+Date: Wed, 19 Apr 2023 08:11:19 GMT
+Content-Type: text/html
+Content-Length: 4833
+Last-Modified: Fri, 16 May 2014 15:12:48 GMT
+Connection: keep-alive
+ETag: "53762af0-12e1"
+Accept-Ranges: bytes
 ```
+P.S. В плейбуке почему-то не срабатывал `restart network` ни через `ansible.builtin.systemd`, ни через `ansible.builtin.service`. При входе на сервер и ручном вводе команды в терминале, все срабатывало. В предыдущих плейбуках ansible отрабатывал без ошибок. В связи с чем в плейбук добавила `reboot` серверов, заодно проверив сохраняются ли настройки.
